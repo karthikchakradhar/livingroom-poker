@@ -6,9 +6,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
 
   const [players, setPlayers] = useState([
-    { id: 1, name: "Player 1", points: 120, games: 8 },
-    { id: 2, name: "Player 2", points: 95, games: 7 },
-    { id: 3, name: "Player 3", points: 80, games: 6 },
+    { id: 1, name: "Player 1", coins: 120, games: 8 },
+    { id: 2, name: "Player 2", coins: 95, games: 7 },
+    { id: 3, name: "Player 3", coins: 80, games: 6 },
   ]);
 
   const [newPlayer, setNewPlayer] = useState("");
@@ -19,54 +19,63 @@ export default function App() {
     { id: 3, player: "Player 3", score: 80, date: "Today" },
   ]);
 
+  // Add a new player
   const addPlayer = () => {
     if (!newPlayer.trim()) return;
 
     const player = {
       id: Date.now(),
       name: newPlayer.trim(),
-      points: 0,
+      coins: 0,
       games: 0,
     };
 
-    setPlayers([...players, player]);
+    setPlayers((previous) => [...previous, player]);
     setNewPlayer("");
   };
 
+  // Remove a player
   const removePlayer = (id) => {
-    setPlayers(players.filter((player) => player.id !== id));
+    setPlayers((previous) =>
+      previous.filter((player) => player.id !== id)
+    );
   };
 
+  // Add coins to a player
   const updateScore = (id, value) => {
-    const score = Number(value);
+    const coins = Number(value);
 
-    if (!Number.isFinite(score)) return;
+    if (!Number.isFinite(coins) || coins <= 0) return;
+
+    const player = players.find((p) => p.id === id);
+    if (!player) return;
 
     setPlayers((previous) =>
-      previous.map((player) =>
-        player.id === id
-          ? { ...player, points: player.points + score }
-          : player
+      previous.map((p) =>
+        p.id === id
+          ? { ...p, coins: p.coins + coins }
+          : p
       )
     );
 
     setScores((previous) => [
       {
         id: Date.now(),
-        player: players.find((p) => p.id === id)?.name || "Unknown",
-        score,
+        player: player.name,
+        score: coins,
         date: new Date().toLocaleDateString(),
       },
       ...previous,
     ]);
   };
 
-  const sortedPlayers = [...players].sort(
-    (a, b) => b.points - a.points
+  // All-time ranking: highest accumulated coins first
+  const allTimePlayers = [...players].sort(
+    (a, b) => b.coins - a.coins
   );
 
-  const totalPoints = players.reduce(
-    (total, player) => total + player.points,
+  const totalCoins = players.reduce(
+    (total, player) => total + player.coins,
     0
   );
 
@@ -74,7 +83,7 @@ export default function App() {
     "Dashboard",
     "Players",
     "Daily Scores",
-    "Leaderboard",
+    "All-Time Performance",
   ];
 
   return (
@@ -91,13 +100,15 @@ export default function App() {
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={activeTab === tab ? "nav-item active" : "nav-item"}
+              className={
+                activeTab === tab ? "nav-item active" : "nav-item"
+              }
               onClick={() => setActiveTab(tab)}
             >
               {tab === "Dashboard" && "▦"}
               {tab === "Players" && "♙"}
               {tab === "Daily Scores" && "◷"}
-              {tab === "Leaderboard" && "🏆"}
+              {tab === "All-Time Performance" && "🏆"}
               <span>{tab}</span>
             </button>
           ))}
@@ -128,6 +139,7 @@ export default function App() {
           </div>
         </header>
 
+        {/* DASHBOARD */}
         {activeTab === "Dashboard" && (
           <section>
             <div className="welcome">
@@ -147,19 +159,22 @@ export default function App() {
                 value={players.length}
                 icon="♙"
               />
+
               <StatCard
-                title="Total Points"
-                value={totalPoints}
+                title="Total Coins"
+                value={totalCoins}
                 icon="★"
               />
+
               <StatCard
                 title="Score Entries"
                 value={scores.length}
                 icon="◷"
               />
+
               <StatCard
                 title="Top Player"
-                value={sortedPlayers[0]?.name || "—"}
+                value={allTimePlayers[0]?.name || "—"}
                 icon="🏆"
               />
             </div>
@@ -168,18 +183,24 @@ export default function App() {
               <div className="section-heading">
                 <div>
                   <h3>Top Players</h3>
-                  <p>Current club rankings</p>
+                  <p>Rankings based on total accumulated coins</p>
                 </div>
-                <button onClick={() => setActiveTab("Leaderboard")}>
-                  View leaderboard →
+
+                <button
+                  onClick={() =>
+                    setActiveTab("All-Time Performance")
+                  }
+                >
+                  View performance →
                 </button>
               </div>
 
-              <PlayerTable players={sortedPlayers.slice(0, 5)} />
+              <PlayerTable players={allTimePlayers.slice(0, 5)} />
             </div>
           </section>
         )}
 
+        {/* PLAYERS */}
         {activeTab === "Players" && (
           <section className="section-card">
             <div className="section-heading">
@@ -196,7 +217,10 @@ export default function App() {
                 value={newPlayer}
                 onChange={(e) => setNewPlayer(e.target.value)}
               />
-              <button onClick={addPlayer}>+ Add Player</button>
+
+              <button onClick={addPlayer}>
+                + Add Player
+              </button>
             </div>
 
             {players.map((player) => (
@@ -210,7 +234,7 @@ export default function App() {
                   <small>{player.games} games played</small>
                 </div>
 
-                <strong>{player.points} pts</strong>
+                <strong>{player.coins} coins</strong>
 
                 <button
                   className="delete-button"
@@ -223,12 +247,13 @@ export default function App() {
           </section>
         )}
 
+        {/* DAILY SCORES */}
         {activeTab === "Daily Scores" && (
           <section className="section-card">
             <div className="section-heading">
               <div>
                 <h3>Daily Scores</h3>
-                <p>Record player points.</p>
+                <p>Record player coins.</p>
               </div>
             </div>
 
@@ -237,12 +262,15 @@ export default function App() {
                 <div className="score-row" key={player.id}>
                   <div>
                     <strong>{player.name}</strong>
-                    <small>Current: {player.points} points</small>
+                    <small>
+                      Total: {player.coins} coins
+                    </small>
                   </div>
 
                   <input
                     type="number"
-                    placeholder="Points"
+                    min="1"
+                    placeholder="Coins"
                     id={`score-${player.id}`}
                   />
 
@@ -258,7 +286,7 @@ export default function App() {
                       input.value = "";
                     }}
                   >
-                    Add Score
+                    Add Coins
                   </button>
                 </div>
               ))}
@@ -270,22 +298,26 @@ export default function App() {
               <div className="history-row" key={score.id}>
                 <span>{score.player}</span>
                 <span>{score.date}</span>
-                <strong>+{score.score}</strong>
+                <strong>+{score.score} coins</strong>
               </div>
             ))}
           </section>
         )}
 
-        {activeTab === "Leaderboard" && (
+        {/* ALL-TIME PERFORMANCE */}
+        {activeTab === "All-Time Performance" && (
           <section className="section-card">
             <div className="section-heading">
               <div>
-                <h3>Club Leaderboard</h3>
-                <p>Rankings based on accumulated points.</p>
+                <h3>All-Time Performance</h3>
+                <p>
+                  Player rankings based on total coins accumulated
+                  across all recorded scores.
+                </p>
               </div>
             </div>
 
-            {sortedPlayers.map((player, index) => (
+            {allTimePlayers.map((player, index) => (
               <div className="leaderboard-row" key={player.id}>
                 <div className="rank">
                   {index === 0
@@ -307,10 +339,14 @@ export default function App() {
                 </div>
 
                 <strong className="leader-points">
-                  {player.points} pts
+                  {player.coins} coins
                 </strong>
               </div>
             ))}
+
+            {players.length === 0 && (
+              <p>No players added yet.</p>
+            )}
           </section>
         )}
       </main>
@@ -318,6 +354,7 @@ export default function App() {
   );
 }
 
+// STAT CARD
 function StatCard({ title, value, icon }) {
   return (
     <div className="stat-card">
@@ -328,6 +365,7 @@ function StatCard({ title, value, icon }) {
   );
 }
 
+// PLAYER TABLE
 function PlayerTable({ players }) {
   return (
     <div className="table-wrapper">
@@ -337,7 +375,7 @@ function PlayerTable({ players }) {
             <th>RANK</th>
             <th>PLAYER</th>
             <th>GAMES</th>
-            <th>POINTS</th>
+            <th>TOTAL COINS</th>
           </tr>
         </thead>
 
@@ -347,7 +385,9 @@ function PlayerTable({ players }) {
               <td>#{index + 1}</td>
               <td>{player.name}</td>
               <td>{player.games}</td>
-              <td><strong>{player.points}</strong></td>
+              <td>
+                <strong>{player.coins}</strong>
+              </td>
             </tr>
           ))}
         </tbody>
